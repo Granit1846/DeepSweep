@@ -1,5 +1,7 @@
 package com.skeorz.lab.deepsweep.ui
 
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -41,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -382,7 +385,9 @@ private val GOLD = Color(0xFFFFC857)
 
 @Composable
 private fun PremiumCard(store: Store) {
-    val on = store.d.premium
+    val on = store.premium
+    var activate by remember { mutableStateOf(false) }
+    val context = LocalContext.current
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp))
             .background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(Color(0xFF3A2A05), Color(0xFF1B1430))))
@@ -390,7 +395,7 @@ private fun PremiumCard(store: Store) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("★ Premium", Modifier.weight(1f), color = GOLD, fontSize = 22.sp, fontWeight = FontWeight.Black)
-            Text(if (on) "Активен" else "Выключен",
+            Text(if (on) "Активен" else "Не активирован",
                 Modifier.clip(RoundedCornerShape(10.dp)).background(if (on) GOLD else Color.White.copy(alpha = 0.15f))
                     .padding(horizontal = 10.dp, vertical = 4.dp),
                 color = if (on) Color(0xFF1A1A1A) else Color.White, fontWeight = FontWeight.Bold)
@@ -400,17 +405,81 @@ private fun PremiumCard(store: Store) {
             "Все полученные кристаллы ×$PREMIUM_CRYSTALS")) {
             Text("✦  $perk", color = Color.White, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 2.dp))
         }
-        TextButton(onClick = { store.setPremium(!on) }) {
-            Text(if (on) "Выключить (для проверки)" else "Включить", color = GOLD)
+        Spacer(Modifier.height(8.dp))
+        if (on) {
+            Text("Спасибо за поддержку! Premium привязан к этому устройству и работает офлайн.",
+                color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.bodySmall)
+        } else {
+            Text("Разовая покупка без подписки: после оплаты вы получите код активации, он проверяется на устройстве.",
+                color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.bodySmall)
+            if (com.skeorz.lab.deepsweep.BuildConfig.PURCHASE_URL.isNotBlank()) {
+                Spacer(Modifier.height(8.dp))
+                Button(
+                    onClick = {
+                        runCatching {
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, Uri.parse(com.skeorz.lab.deepsweep.BuildConfig.PURCHASE_URL))
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Купить Premium") }
+            }
+            TextButton(onClick = { activate = true }, modifier = Modifier.fillMaxWidth()) {
+                Text("У меня есть код", color = GOLD)
+            }
+        }
+        // test build only: flip Premium without a licence
+        if (com.skeorz.lab.deepsweep.BuildConfig.CHEATS) {
+            TextButton(onClick = { store.setPremium(!store.d.premium) }) {
+                Text(if (store.d.premium) "Выключить (для проверки)" else "Включить (для проверки)", color = GOLD)
+            }
         }
     }
+    if (activate) ActivateDialog(store) { activate = false }
 }
+
+@Composable
+private fun ActivateDialog(store: Store, onClose: () -> Unit) {
+    var code by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text("Активация Premium") },
+        text = {
+            Column {
+                Text("Вставьте код активации из письма или сообщения после покупки. Код проверяется на устройстве и не требует интернета.",
+                    style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = code,
+                    onValueChange = { code = it; error = null },
+                    label = { Text("Код активации") },
+                    minLines = 2,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                error?.let {
+                    Spacer(Modifier.height(6.dp))
+                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                if (store.activate(code)) onClose()
+                else error = "Код не подошёл. Проверьте, что он скопирован целиком."
+            }) { Text("Активировать") }
+        },
+        dismissButton = { TextButton(onClick = onClose) { Text("Отмена") } },
+    )
+}
+
 
 @Composable
 fun ShopScreen(store: Store, onBack: () -> Unit) {
     var cat by remember { mutableStateOf(Cat.BOOSTER) }
     Page("Магазин", onBack, store) {
-        // Premium lives only in the test build; R8 drops the card from release
+        // Premium lives in the Pro and test builds; R8 drops the card from the free build
         if (com.skeorz.lab.deepsweep.BuildConfig.PREMIUM) item { PremiumCard(store) }
         item {
             Text("Всё покупается только за кристаллы, заработанные в игре: решайте особые сектора, вскрывайте хранилища, " +
@@ -711,7 +780,13 @@ fun SettingsScreen(store: Store, allowReset: Boolean = true, onBack: () -> Unit)
                 Text("🛠 Читы (только debug)", color = Color(0xFFFF4D5E), fontWeight = FontWeight.SemiBold)
             }
         }
-        item { Text("Глубинный сапёр 1.0 · без рекламы, трекеров и покупок", style = MaterialTheme.typography.bodySmall) }
+        item {
+            Text(
+                "Глубинный сапёр 1.0 · без рекламы и трекеров" +
+                    if (com.skeorz.lab.deepsweep.BuildConfig.PREMIUM) "" else " и покупок",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
     }
     if (com.skeorz.lab.deepsweep.BuildConfig.CHEATS && cheats) CheatsWindow(store) { cheats = false }
     if (confirm) AlertDialog(

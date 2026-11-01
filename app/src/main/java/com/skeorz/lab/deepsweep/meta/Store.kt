@@ -3,6 +3,7 @@ package com.skeorz.lab.deepsweep.meta
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.skeorz.lab.deepsweep.game.Difficulty
 import com.skeorz.lab.deepsweep.BuildConfig
@@ -49,8 +50,10 @@ data class Data(
     var lastMode: String = Mode.ENDLESS.name,
     var firstSectorDay: Long = -1,
     var endlessDifficulty: String = Difficulty.NORMAL.name,
-    /** Active for everyone until a way to get it exists. */
+    /** Active for everyone until the Pro build turns it into a paid unlock; ignored in the free build. */
     var premium: Boolean = true,
+    /** Pro activation code, verified on load; null in the free build and before activation. */
+    var license: String? = null,
     /** Achievement id → reached tier (1 bronze … 4 platinum; 1 for one-time achievements). */
     val tiers: MutableMap<String, Int> = mutableMapOf(),
     /** Earned, not yet opened packs (each is its list of boosters); all of one kind, opened one at a time. */
@@ -74,6 +77,12 @@ class Store(private val dir: File) {
     var rev by mutableIntStateOf(0)
         private set
     val toasts = mutableStateListOf<String>()
+
+    /** Licence of this install, verified once on load and after activation. */
+    var proUnlocked by mutableStateOf(false)
+        private set
+
+    init { proUnlocked = License.isValid(d.license) }
 
     fun save() {
         val tmp = File(dir, "progress.tmp")
@@ -109,13 +118,25 @@ class Store(private val dir: File) {
     /** Set by the activity from the app's debuggable flag. */
     var debug = BuildConfig.CHEATS
 
-    /** Premium in effect: only builds that ship it (test build) honour the saved switch. */
-    val premium get() = BuildConfig.PREMIUM && d.premium
+    /**
+     * Premium in effect. The test build toggles it from the shop; the Pro build turns it on
+     * only for a valid activation code. The free build never honours it.
+     */
+    val premium get() = BuildConfig.PREMIUM && (if (BuildConfig.CHEATS) d.premium || proUnlocked else proUnlocked)
     val infiniteCrystals get() = debug && d.cheatCrystals
     val immortal get() = debug && d.cheatImmortal
     val infiniteBoosters get() = debug && d.cheatBoosters
     val endlessOxygen get() = debug && d.cheatOxygen
     val anyCheat get() = infiniteCrystals || immortal || infiniteBoosters || endlessOxygen
+
+    /** Verifies and stores a Pro activation code; false means the code is damaged or for another product. */
+    fun activate(code: String): Boolean {
+        if (!License.isValid(code)) return false
+        d.license = code
+        proUnlocked = true
+        changed()
+        return true
+    }
 
     fun spend(n: Int): Boolean {
         if (infiniteCrystals) return true
@@ -272,6 +293,7 @@ class Store(private val dir: File) {
         }
     }
 
+    /** Test build only: switches Premium on and off without a licence. */
     fun setPremium(on: Boolean) {
         d.premium = on
         val all = ITEMS.filter { owns(it) }.map { it.id }.toSet()
@@ -330,7 +352,10 @@ class Store(private val dir: File) {
     fun best(mode: Mode) = d.runs.filter { it.mode == mode.name }.maxOfOrNull { it.score } ?: 0L
 
     fun reset() {
-        d = Data()
+        // a paid licence is not progress: keep it when the player wipes their data
+        val license = d.license
+        d = Data(license = license)
+        proUnlocked = License.isValid(d.license)
         File(dir, "worlds").deleteRecursively()
         changed()
     }

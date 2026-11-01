@@ -2,14 +2,26 @@
 
 Бесконечный сапёр на дне океана для Android: сектора 8×8, шесть режимов, девять бустеров,
 хранилища, достопримечательности, уровни, достижения и ежедневные задания. Без рекламы,
-без встроенных покупок и без доступа к интернету — весь прогресс хранится на устройстве.
+трекеров и доступа к интернету — весь прогресс хранится на устройстве.
 
-Пакет: `com.skeorz.lab.deepsweep` · версия 1.0.0 (код 1) · minSdk 26 · targetSdk 37.
+Пакет: `com.skeorz.lab.deepsweep` · версия 1.0.0 (free-код 1, Pro-код 100001) · minSdk 26 · targetSdk 37.
+
+## Сборки
+
+| Вариант | Для чего | Premium | Читы |
+|---|---|---|---|
+| `free` | RuStore, бесплатная версия | нет | нет |
+| `pro` | GitHub Releases, покупка Premium | по коду активации | нет |
+| `debug` | отладка | да | да |
+
+Pro-сборка ставится поверх free: тот же пакет и подпись, прогресс сохраняется. Код активации
+проверяется офлайн; покупка, выпуск кодов и ограничения описаны в [`docs/PRO.md`](docs/PRO.md).
 
 ## Стек
 
 - Kotlin 2.4, Jetpack Compose (Material 3), kotlinx.serialization;
 - собственный игровой движок: детерминированная генерация по seed, без сторонних библиотек;
+- подпись лицензий: ECDSA P-256 / SHA-256 на встроенных средствах Java, без зависимостей;
 - сборка: Gradle 9.8 (wrapper), AGP 9.4, JDK 17+.
 
 ## Сборка
@@ -21,12 +33,13 @@ sdk.dir=C\:\\Android\\Sdk
 ```
 
 ```bash
-./gradlew :app:assembleDebug      # тестовая сборка: applicationId .test, Premium и читы
-./gradlew :app:testDebugUnitTest  # юнит-тесты игровой логики
-./gradlew :app:assembleRelease    # магазинная сборка (нужен keystore.properties)
+./gradlew :app:assembleProDebug       # тестовая сборка: applicationId .test, Premium и читы
+./gradlew :app:testProDebugUnitTest   # юнит-тесты игровой логики и лицензий
+./gradlew :app:assembleFreeRelease    # RuStore: без Premium и покупок
+./gradlew :app:assembleProRelease     # Pro: Premium по коду активации
 ```
 
-Release-сборка подписывается ключом, описанным в `keystore.properties` в корне проекта
+Release-сборки подписываются ключом, описанным в `keystore.properties` в корне проекта
 (файл и сам `.jks` в git не попадают):
 
 ```properties
@@ -36,21 +49,24 @@ keyAlias=deepsweep
 keyPassword=…
 ```
 
-Без `keystore.properties` собирается только debug-вариант.
+Без `keystore.properties` собираются только debug-варианты.
 
 ## Структура
 
 | Путь | Что внутри |
 |---|---|
 | `app/src/main/java/.../game/` | `World` (генерация поля), `Session` (правила прогона), `Mode` |
-| `app/src/main/java/.../meta/` | `Store` (прогресс, уровни, задания), `Catalog` (предметы, достижения) |
+| `app/src/main/java/.../meta/` | `Store` (прогресс, уровни, задания), `Catalog`, `License` (проверка кодов) |
 | `app/src/main/java/.../ui/` | экраны Compose, поле, бустеры, эффекты, темы |
 | `app/src/test/` | юнит-тесты логики (JVM) |
+| `tools/license/` | выпуск ключей и кодов активации (приватный ключ в git не попадает) |
+| `docs/` | покупка и активация Pro |
 | `rustore/` | карточка RuStore, политика конфиденциальности, скриншоты |
 
 ## Публикация
 
-Инструкция и тексты для RuStore — в [`rustore/RuStore.md`](rustore/RuStore.md).
+- RuStore: [`rustore/RuStore.md`](rustore/RuStore.md), сборка `freeRelease`.
+- Pro на GitHub: [`docs/PRO.md`](docs/PRO.md), сборка `proRelease`.
 
 ## Лицензия
 

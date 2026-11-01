@@ -25,6 +25,29 @@ android {
         versionName = "1.0.0"
     }
 
+    // Two editions share the package name, so the paid Pro build installs over the free one
+    // and keeps the saves. Pro's versionCode is offset by 100000: a free RuStore update can
+    // never downgrade (and silently de-Premium) an installed Pro build. Bump both numbers
+    // together: 1.0.0 -> free 1 / pro 100001, 1.1.0 -> free 2 / pro 100002, and so on.
+    flavorDimensions += "edition"
+    productFlavors {
+        create("free") {
+            dimension = "edition"
+            buildConfigField("boolean", "PREMIUM", "false")
+            buildConfigField("String", "PURCHASE_URL", "\"\"")
+        }
+        create("pro") {
+            dimension = "edition"
+            versionCode = 100_001
+            buildConfigField("boolean", "PREMIUM", "true")
+            buildConfigField(
+                "String",
+                "PURCHASE_URL",
+                "\"https://github.com/Granit1846/DeepSweep/blob/main/docs/PRO.md\"",
+            )
+        }
+    }
+
     signingConfigs {
         create("release") {
             if (keyProps.isNotEmpty()) {
@@ -41,13 +64,11 @@ android {
         debug {
             applicationIdSuffix = ".test"
             resValue("string", "app_name", "Глубинный сапёр (тест)")
-            buildConfigField("boolean", "PREMIUM", "true")
             buildConfigField("boolean", "CHEATS", "true")
         }
-        // store build (RuStore): no Premium, no cheats — R8 strips their code and texts
+        // store build (RuStore, free) and the Pro build: no cheats, R8 strips their code and texts
         release {
             resValue("string", "app_name", "Глубинный сапёр")
-            buildConfigField("boolean", "PREMIUM", "false")
             buildConfigField("boolean", "CHEATS", "false")
             isMinifyEnabled = true
             isShrinkResources = true
