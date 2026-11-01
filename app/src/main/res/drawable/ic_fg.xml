@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sonar rings around a crystal -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M54,24a30,30 0,1 1,0 60a30,30 0,1 1,0 -60"
+        android:strokeWidth="2.5"
+        android:strokeColor="#1F6F8B" />
+    <path
+        android:pathData="M54,34a20,20 0,1 1,0 40a20,20 0,1 1,0 -40"
+        android:strokeWidth="2.5"
+        android:strokeColor="#2FA8B8" />
+    <path
+        android:fillColor="#3FE0D0"
+        android:pathData="M54,40 L64,52 L54,68 L44,52 Z" />
+    <path
+        android:fillColor="#B8FFF6"
+        android:pathData="M54,40 L58,52 L54,68 L50,52 Z" />
+</vector>

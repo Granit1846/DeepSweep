@@ -1,0 +1,35 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+.kotlin/
+.navigation/
+
+# Machine-specific configuration (SDK path)
+local.properties
+
+# Signing: key and passwords must never reach the repository
+keystore.properties
+*.jks
+*.keystore
+
+# Build artifacts
+*.apk
+*.aab
+*.idsig
+*.ap_
+*.prt
+
+# Temporary files
+.tmp/
+
+# OS
+.DS_Store
+Thumbs.db
