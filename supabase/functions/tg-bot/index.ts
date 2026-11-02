@@ -1,5 +1,6 @@
-// Telegram bot that hands out pre-signed DeepSweep Pro licence codes.
-// Buyers are matched by the e-mail they left in the Boosty donation comment.
+// Telegram bot that sells and delivers DeepSweep Pro licence codes.
+// Buyers are matched by the e-mail they left in the Boosty donation comment;
+// /buy shows the product card with the price (required when connecting a payment provider).
 // Deploy steps: docs/BOT.md. Secrets: TG_BOT_TOKEN, TG_SECRET, TG_ADMIN_CHAT.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -7,6 +8,13 @@ const TG_TOKEN = Deno.env.get("TG_BOT_TOKEN") ?? "";
 const TG_SECRET = Deno.env.get("TG_SECRET") ?? "";
 const ADMIN = Number(Deno.env.get("TG_ADMIN_CHAT") ?? "0");
 const LOW_POOL = 5;
+
+/** Storefront shown by /buy; the price and links are changed without touching the code. */
+const PRICE_RUB = Number(Deno.env.get("PRICE_RUB") ?? "399");
+const BUY_URL = Deno.env.get("BUY_URL") ??
+  "https://boosty.to/skeorz/posts/45a69380-9ff8-43ae-89d3-02e0eb816165";
+const SUPPORT_URL = Deno.env.get("SUPPORT_URL") ?? "https://t.me/skeorz";
+const PRODUCT_IMAGE = Deno.env.get("PRODUCT_IMAGE_URL") ?? "";
 
 const db = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
@@ -19,10 +27,47 @@ const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const HELP = [
   "<b>DeepSweep Pro</b>",
   "",
-  "Пришлите e-mail, который вы указали в комментарии к оплате на Boosty, —",
-  "я найду платёж и пришлю код активации.",
+  "• /buy — цена и покупка",
+  "• пришлите e-mail из комментария к оплате — пришлю код активации",
+  "• /terms — условия, /support — поддержка",
   "",
   "Код бессрочный, проверяется на устройстве, интернет для активации не нужен.",
+].join("\n");
+
+const PRODUCT = [
+  "<b>DeepSweep Pro — ключ активации Premium</b>",
+  "",
+  "Бесконечный сапёр на дне океана. Бесплатная версия открыта всем, Pro открывает Premium:",
+  "",
+  "✦ весь магазин: темы, мины, буи, цифры, рамки профиля",
+  "✦ опыт ×2 в любом режиме и на любой сложности",
+  "✦ все заработанные кристаллы ×3",
+  "✦ все режимы сразу, без прокачки уровня",
+  "",
+  `Стоимость: <b>${PRICE_RUB} ₽</b> — разовая покупка, без подписки.`,
+  "Ключ проверяется на устройстве: интернет для активации не нужен.",
+  "",
+  "После оплаты пришлите боту e-mail, указанный в комментарии, — он пришлёт код.",
+].join("\n");
+
+const TERMS = [
+  "<b>Условия покупки</b>",
+  "",
+  "• товар цифровой: ключ активации Premium для DeepSweep Pro;",
+  "• оплата разовая, подписки нет;",
+  "• ключ бессрочный, хранится в сохранении игры;",
+  "• после выдачи ключа возврат не предусмотрен;",
+  "• при переустановке игры код нужно ввести снова.",
+].join("\n");
+
+const SUPPORT = [
+  "<b>Поддержка</b>",
+  "",
+  `Напишите: ${SUPPORT_URL} — отвечу в течение дня.`,
+  "По оплате пришлите дату, сумму и e-mail из комментария к платежу.",
+  "",
+  "Telegram не обрабатывает платежи и не может помочь с возвратом —",
+  "все вопросы по покупке решает продавец.",
 ].join("\n");
 
 const HOWTO = [
@@ -45,6 +90,39 @@ async function tg(method: string, body: unknown) {
 
 const say = (chat: number, text: string) =>
   tg("sendMessage", { chat_id: chat, text, parse_mode: "HTML", disable_web_page_preview: true });
+
+const buyKeyboard = {
+  inline_keyboard: [
+    [{ text: `Оплатить ${PRICE_RUB} ₽`, url: BUY_URL }],
+    [{ text: "Поддержка", url: SUPPORT_URL }],
+  ],
+};
+
+/** Product card: photo with caption when PRODUCT_IMAGE_URL is set, plain message otherwise. */
+async function sendProduct(chat: number) {
+  if (PRODUCT_IMAGE) {
+    const res = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendPhoto`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chat,
+        photo: PRODUCT_IMAGE,
+        caption: PRODUCT,
+        parse_mode: "HTML",
+        reply_markup: buyKeyboard,
+      }),
+    });
+    if (res.ok) return;
+    console.error("sendPhoto failed", res.status, await res.text());
+  }
+  await tg("sendMessage", {
+    chat_id: chat,
+    text: PRODUCT,
+    parse_mode: "HTML",
+    disable_web_page_preview: true,
+    reply_markup: buyKeyboard,
+  });
+}
 
 async function poolLeft(): Promise<number> {
   const { count } = await db
@@ -95,9 +173,23 @@ Deno.serve(async (req) => {
   const chat: number | undefined = update?.message?.chat?.id;
   const text: string = (update?.message?.text ?? "").trim();
   if (!chat || !text) return new Response("ok");
+  // "/buy@deepsweep_pro_bot" must work too
+  const cmd = text.split(/\s+/)[0].split("@")[0].toLowerCase();
 
-  if (text === "/start" || text === "/help") {
+  if (cmd === "/start" || cmd === "/help" || cmd === "/menu") {
     await say(chat, HELP);
+    return new Response("ok");
+  }
+  if (cmd === "/buy" || cmd === "/price" || cmd === "/shop") {
+    await sendProduct(chat);
+    return new Response("ok");
+  }
+  if (cmd === "/terms") {
+    await say(chat, TERMS);
+    return new Response("ok");
+  }
+  if (cmd === "/support" || cmd === "/paysupport") {
+    await say(chat, SUPPORT);
     return new Response("ok");
   }
 
