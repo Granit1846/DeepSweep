@@ -83,15 +83,16 @@ tools/license/deploy-bot.sh
 
    ```bash
    tools/license/gen-pool.sh 25          # создаст tools/license/pool-<дата>.sql
+   npx supabase db query --remote --yes -f tools/license/pool-<дата>.sql
    ```
 
-   Файл вставить в Supabase → SQL Editor → Run. Проверить в боте: `/pool` (команда только для
-   `TG_ADMIN_CHAT`).
+   Проверить в боте: `/pool` (команда только для `TG_ADMIN_CHAT`).
 
 7. **Проверка**: добавить тестовую продажу и пройти путь покупателя.
 
    ```bash
-   tools/license/add-payment.sh TEST-1 you@example.com 1   # SQL → SQL Editor
+   tools/license/add-payment.sh TEST-1 you@example.com 1 > /tmp/pay.sql
+   npx supabase db query --remote --yes -f /tmp/pay.sql
    ```
 
    В боте: `/start` → e-mail → должен прийти код. После проверки строку можно удалить.
@@ -102,7 +103,8 @@ tools/license/deploy-bot.sh
 2. Записываете его одним из двух способов:
 
    ```bash
-   tools/license/add-payment.sh BS-100002 buyer@example.com 399   # SQL → SQL Editor
+   tools/license/add-payment.sh BS-100002 buyer@example.com 399 > /tmp/pay.sql
+   npx supabase db query --remote --yes -f /tmp/pay.sql
    ```
 
    или прямо в боте: `/add BS-100002 buyer@example.com 399`.
@@ -112,12 +114,29 @@ tools/license/deploy-bot.sh
 Если человек купил дважды, добавьте две строки: бот выдаст по коду на каждый платёж.
 Повторный запрос тем же e-mail в том же чате вернёт тот же код, в другом чате — откажет.
 
+## Если проект общий с другим приложением
+
+Здесь проект Supabase общий с Logbook, и у него своя история миграций. `supabase db push`
+из этого репозитория на нём падает:
+
+```
+Remote migration versions not found in local migrations directory.
+```
+
+Это защита от того, чтобы один репозиторий не переписал схему другого. Правила:
+
+- **Никогда не делайте `supabase migration repair`** на этом проекте: он сдвинет историю
+  миграций Logbook, и следующее развёртывание Logbook попытается применить свои миграции заново.
+- Новые таблицы и функции применяйте точечно: `npx supabase db query --remote --yes -f файл.sql`.
+- Если всё-таки нужен `db push`, делайте это во временном каталоге, где рядом со своей миграцией
+  лежат пустые файлы с версиями из истории проекта, и указывайте `--remote=<ref> --include-all`.
+
 ## Эксплуатация
 
 | Что | Как |
 |---|---|
 | Сколько кодов осталось | `/pool` в боте; бот сам предупредит при ≤ 5 |
-| Догрузить коды | `tools/license/gen-pool.sh 25` → SQL Editor |
+| Догрузить коды | `tools/license/gen-pool.sh 25` → `npx supabase db query --remote --yes -f …` |
 | Проверить вебхук | `curl "https://api.telegram.org/bot<TOKEN>/getWebhookInfo"` |
 | Логи функции | дашборд → Edge Functions → tg-bot → Logs |
 | Выданные коды | таблица `codes`: `used_at`, `used_by`, `order_id` |
