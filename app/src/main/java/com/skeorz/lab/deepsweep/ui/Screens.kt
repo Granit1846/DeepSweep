@@ -479,7 +479,8 @@ private fun ActivateDialog(store: Store, onClose: () -> Unit) {
 fun ShopScreen(store: Store, onBack: () -> Unit) {
     var cat by remember { mutableStateOf(Cat.BOOSTER) }
     Page("Магазин", onBack, store) {
-        // Premium lives in the Pro and test builds; R8 drops the card from the free build
+        // Premium lives in the Pro and test builds; R8 drops the card from the free build.
+        // Must stay visible while locked: the card holds "Купить" and "У меня есть код".
         if (com.skeorz.lab.deepsweep.BuildConfig.PREMIUM) item { PremiumCard(store) }
         item {
             Text("Всё покупается только за кристаллы, заработанные в игре: решайте особые сектора, вскрывайте хранилища, " +

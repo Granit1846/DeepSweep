@@ -1,0 +1,7 @@
+# Supabase CLI defaults. The real project ref comes from `supabase link`, not from this file.
+project_id = "deepsweep"
+
+# Telegram cannot send a Supabase JWT, so the bot verifies the
+# X-Telegram-Bot-Api-Secret-Token header instead (see docs/BOT.md).
+[functions.tg-bot]
+verify_jwt = false

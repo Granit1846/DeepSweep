@@ -20,9 +20,15 @@ keystore.properties
 *.jks
 *.keystore
 
-# Pro licence key pair and the codes already sold — never commit
-tools/license/keys/
-tools/license/issued.csv
+# Licence tooling, the key pair and the codes already sold stay out of the repository
+tools/license/
+
+# Supabase CLI scratch files
+supabase/.temp/
+supabase/.branches/
+
+# Bot deployment secrets; the *.example template stays tracked
+.secrets/*.env
 
 # Build artifacts
 *.apk
