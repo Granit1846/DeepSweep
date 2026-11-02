@@ -10,7 +10,7 @@ const ADMIN = Number(Deno.env.get("TG_ADMIN_CHAT") ?? "0");
 const LOW_POOL = 5;
 
 /** Storefront shown by /buy; the price and links are changed without touching the code. */
-const PRICE_RUB = Number(Deno.env.get("PRICE_RUB") ?? "399");
+const PRICE_RUB = Number(Deno.env.get("PRICE_RUB") ?? "99");
 const BUY_URL = Deno.env.get("BUY_URL") ??
   "https://boosty.to/skeorz/posts/45a69380-9ff8-43ae-89d3-02e0eb816165";
 const SUPPORT_URL = Deno.env.get("SUPPORT_URL") ?? "https://t.me/skeorz";
