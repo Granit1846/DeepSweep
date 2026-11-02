@@ -383,6 +383,11 @@ fun Medal(tier: Int, size: Int) {
 
 private val GOLD = Color(0xFFFFC857)
 
+/** Pro storefront and support links shown in the settings screen. */
+private const val PRO_PAGE = "https://boosty.to/skeorz/posts/45a69380-9ff8-43ae-89d3-02e0eb816165"
+private const val PRO_APK = "https://github.com/Granit1846/DeepSweep/releases"
+private const val BOT_URL = "https://t.me/deepsweep_pro_bot"
+
 @Composable
 private fun PremiumCard(store: Store) {
     val on = store.premium
@@ -750,6 +755,9 @@ fun RecordsScreen(store: Store, current: Map<Mode, Long> = emptyMap(), startMode
 fun SettingsScreen(store: Store, allowReset: Boolean = true, onBack: () -> Unit) {
     var cheats by remember { mutableStateOf(false) }
     var confirm by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    // links open in the browser: the game itself has no INTERNET permission
+    fun open(url: String) = runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
     Page("Настройки", onBack, store) {
         val d = store.d
         item {
@@ -771,6 +779,35 @@ fun SettingsScreen(store: Store, allowReset: Boolean = true, onBack: () -> Unit)
                     "• новый уровень, ежедневная вахта, задания и достижения", style = MaterialTheme.typography.bodySmall)
             }
         }
+        // free build: what Pro gives and where to get it; Pro build: the code delivery bot
+        item {
+            Card {
+                if (com.skeorz.lab.deepsweep.BuildConfig.PREMIUM) {
+                    Text("★ Pro", fontWeight = FontWeight.Bold)
+                    Text(
+                        if (store.premium) "Premium активирован на этом устройстве — спасибо за поддержку."
+                        else "Premium включается кодом активации: Магазин → ★ Premium → «У меня есть код».",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    TextButton(onClick = { open(BOT_URL) }, Modifier.fillMaxWidth()) {
+                        Text("Бот выдачи кодов @deepsweep_pro_bot", color = GOLD)
+                    }
+                } else {
+                    Text("★ Pro-версия", fontWeight = FontWeight.Bold)
+                    Text(
+                        "В Pro открыт весь магазин, опыт ×2, кристаллы ×3 и все режимы сразу. " +
+                            "Покупка разовая, без подписки: Premium включается кодом активации.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    TextButton(onClick = { open(PRO_PAGE) }, Modifier.fillMaxWidth()) {
+                        Text("Купить Premium", color = GOLD)
+                    }
+                    TextButton(onClick = { open(PRO_APK) }, Modifier.fillMaxWidth()) {
+                        Text("Pro-сборка на GitHub", color = GOLD)
+                    }
+                }
+            }
+        }
         // reset from inside a running game would pull the map out from under it
         if (allowReset) item {
             OutlinedButton(onClick = { confirm = true }, Modifier.fillMaxWidth()) { Text("Сбросить весь прогресс", color = MaterialTheme.colorScheme.error) }
@@ -783,7 +820,7 @@ fun SettingsScreen(store: Store, allowReset: Boolean = true, onBack: () -> Unit)
         }
         item {
             Text(
-                "Глубинный сапёр 1.0 · без рекламы и трекеров" +
+                "Глубинный сапёр ${com.skeorz.lab.deepsweep.BuildConfig.VERSION_NAME} · без рекламы и трекеров" +
                     if (com.skeorz.lab.deepsweep.BuildConfig.PREMIUM) "" else " и покупок",
                 style = MaterialTheme.typography.bodySmall,
             )

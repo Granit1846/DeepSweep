@@ -21,14 +21,14 @@ android {
         applicationId = "com.skeorz.lab.deepsweep"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1"
     }
 
     // Two editions share the package name, so the paid Pro build installs over the free one
     // and keeps the saves. Pro's versionCode is offset by 100000: a free RuStore update can
     // never downgrade (and silently de-Premium) an installed Pro build. Bump both numbers
-    // together: 1.0.0 -> free 1 / pro 100001, 1.1.0 -> free 2 / pro 100002, and so on.
+    // together: 1.0.0 -> free 1 / pro 100001, 1.0.1 -> free 2 / pro 100002, and so on.
     flavorDimensions += "edition"
     productFlavors {
         create("free") {
@@ -38,12 +38,12 @@ android {
         }
         create("pro") {
             dimension = "edition"
-            versionCode = 100_001
+            versionCode = 100_002
             buildConfigField("boolean", "PREMIUM", "true")
             buildConfigField(
                 "String",
                 "PURCHASE_URL",
-                "\"https://github.com/Granit1846/DeepSweep/blob/main/docs/PRO.md\"",
+                "\"https://boosty.to/skeorz/posts/45a69380-9ff8-43ae-89d3-02e0eb816165\"",
             )
         }
     }
