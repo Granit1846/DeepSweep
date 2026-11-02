@@ -17,6 +17,9 @@
 Pro-сборка ставится поверх free: тот же пакет и подпись, прогресс сохраняется. Код активации
 проверяется офлайн; покупка, выпуск кодов и ограничения описаны в [`docs/PRO.md`](docs/PRO.md).
 
+Поддержать разработку и получить ключ Premium: [пост на Boosty](https://boosty.to/skeorz/posts/45a69380-9ff8-43ae-89d3-02e0eb816165),
+код присылает бот [@deepsweep_pro_bot](https://t.me/deepsweep_pro_bot).
+
 ## Стек
 
 - Kotlin 2.4, Jetpack Compose (Material 3), kotlinx.serialization;
